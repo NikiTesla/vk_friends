@@ -1,0 +1,26 @@
+version: '3.8'
+services:
+  db:
+    container_name: vk_pg
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+  # web:
+  #   build: ./friends
+  #   command: python manage.py runserver 0.0.0.0:8000
+  #   volumes:
+  #     - ./friends/:/usr/src/friends/
+  #   ports:
+  #     - 8000:8000
+  #   depends_on:
+  #     - db
+
+volumes:
+  postgres_data:
