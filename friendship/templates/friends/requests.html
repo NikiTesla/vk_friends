@@ -6,21 +6,21 @@
     <h3>Incoming:</h3>
 
     {% for req in incoming %}
-    <ul>
-        <li>
+    <ul class="list-group">
+        <li class="list-group-item">
         <p>Request from {{ req.from_user }} created at {{ req.created_at }}</p>
         <div style="display: inline-block;">
             <form method="POST", action="accept">
                 {% csrf_token %}
                 <input type="hidden" name="from_user" value="{{ req.from_user }}">
-                <button type="submit">Accept</button>
+                <button type="submit"  class="btn btn-success">Accept</button>
             </form>
         </div>
         <div style="display: inline-block;">
             <form method="POST", action="reject">
                 {% csrf_token %}
                 <input type="hidden" name="from_user" value="{{ req.from_user }}">
-                <button type="submit">Reject</button> 
+                <button type="submit" class="btn btn-danger">Reject</button> 
             </form>
         </div>
         </li>
@@ -29,16 +29,18 @@
 
     <h3>Outcoming:</h3>
     {% for req in outcoming %}
-    <ul>
-        <li>
+    <ul class="list-group">
+        <li class="list-group-item">
         <form method="POST", action="withdraw">
         {% csrf_token %}
             <p>Request from {{ req.to_user }} created at {{ req.created_at }}</p>
             <input type="hidden" name="to_user" value="{{ req.to_user }}">
-            <button type="submit">Withdraw</button><br/>
+            <button type="submit" class="btn btn-success">Withdraw</button><br/>
         </form>
         </li>
     </ul>
 {% endfor %}
 
-{% endblock %}incoming
+<a href="add_friend" class="btn btn-dark">Add friend</a>
+
+{% endblock %}

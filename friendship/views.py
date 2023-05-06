@@ -23,7 +23,7 @@ def show_friends(request):
     user = UserProfile.objects.get(user=auth.get_user(request))
     friends = UserSerializer(user.friends.all(), many=True).data
 
-    return Response({'user': str(user), 'friends': friends})
+    return render(request, "friends/friends.html", {'friends': friends})
 
 @login_required()
 @api_view(("POST","GET"))
