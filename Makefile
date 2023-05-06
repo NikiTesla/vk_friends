@@ -9,5 +9,5 @@ run:
 	@ python3 manage.py runserver
 
 docker:
-	@ sudo docker build -t friends .
+	@ sudo docker build -t friends_vk .
 	@ sudo docker compose up

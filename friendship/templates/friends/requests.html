@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Friendship requests{% endblock %}
+{% block content %}
+{% load tz %}
+    <h1>Your friendship requests</h1>
+    <h3>Incoming:</h3>
+
+    {% for req in incoming %}
+    <ul>
+        <li>
+        <p>Request from {{ req.from_user }} created at {{ req.created_at }}</p>
+        <div style="display: inline-block;">
+            <form method="POST", action="accept">
+                {% csrf_token %}
+                <input type="hidden" name="from_user" value="{{ req.from_user }}">
+                <button type="submit">Accept</button>
+            </form>
+        </div>
+        <div style="display: inline-block;">
+            <form method="POST", action="reject">
+                {% csrf_token %}
+                <input type="hidden" name="from_user" value="{{ req.from_user }}">
+                <button type="submit">Reject</button> 
+            </form>
+        </div>
+        </li>
+    </ul>
+    {% endfor %}
+
+    <h3>Outcoming:</h3>
+    {% for req in outcoming %}
+    <ul>
+        <li>
+        <form method="POST", action="withdraw">
+        {% csrf_token %}
+            <p>Request from {{ req.to_user }} created at {{ req.created_at }}</p>
+            <input type="hidden" name="to_user" value="{{ req.to_user }}">
+            <button type="submit">Withdraw</button><br/>
+        </form>
+        </li>
+    </ul>
+{% endfor %}
+
+{% endblock %}incoming

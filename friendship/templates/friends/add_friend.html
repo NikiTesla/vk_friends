@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Add friend{% endblock %}
+{% block content %}
+    <h1>Add friend</h1>
+    <p>Please, enter your friends name:</p>
+    <form action="add_friend" method="post">
+        {{ form.as_p }}
+        {% csrf_token %}
+        <p><input type="submit" value="friendship_request"></p>
+    </form>
+{% endblock %}

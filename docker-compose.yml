@@ -6,21 +6,30 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: pass
-      POSTGRES_DB: postgres
+      POSTGRES_DB: friends
     ports:
       - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data/
 
-  # web:
-  #   build: ./friends
-  #   command: python manage.py runserver 0.0.0.0:8000
-  #   volumes:
-  #     - ./friends/:/usr/src/friends/
-  #   ports:
-  #     - 8000:8000
-  #   depends_on:
-  #     - db
+  friends:
+    container_name: friends_vk
+    image: friends_vk
+    volumes:
+      - .:/app
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+    links:
+      - db:db
+    environment:
+      DB_NAME: friends
+      DB_USER: postgres
+      DB_PASSWORD: pass
+      DB_HOST: db
+      DB_PORT: 5432
 
 volumes:
   postgres_data:
+    driver: local
