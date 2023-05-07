@@ -14,7 +14,7 @@ from .serializers import UserSerializer, IncomeFriendshipRequestsSerializer, Out
 
 @login_required
 def index(request):
-    return render(request, "friends/index.html")
+    return render(request, "index.html")
 
 @login_required()
 @api_view(('GET',))
@@ -23,7 +23,7 @@ def show_friends(request):
     user = UserProfile.objects.get(user=auth.get_user(request))
     friends = UserSerializer(user.friends.all(), many=True).data
 
-    return render(request, "friends/friends.html", {'friends': friends})
+    return render(request, "friends.html", {'friends': friends})
 
 @login_required()
 @api_view(("POST","GET"))
@@ -68,7 +68,7 @@ def add_friend(request):
     else:
         form = FriendshipForm()
     
-    return render(request, 'friends/add_friend.html', {'form': form, 'user':str(user_profile)})
+    return render(request, 'add_friend.html', {'form': form, 'user':str(user_profile)})
 
 @login_required
 @api_view(("GET",))
@@ -76,7 +76,7 @@ def show_requests(request):
     user = UserProfile.objects.get(user=auth.get_user(request))
     incoming, outcoming = _get_requests_serialized(user)
 
-    return render(request, "friends/requests.html", {
+    return render(request, "requests.html", {
         "user": str(user),
         "outcoming": outcoming,
         "incoming": incoming
@@ -102,7 +102,7 @@ def accept(request):
     user_profile, friend_profile = _get_user_friend_profiles(request, friend_id)
     _accept_request(friend_profile, user_profile)
 
-    return redirect("show_friends")
+    return redirect("show_requests")
 
 @api_view(("POST",))
 def reject(request):
@@ -114,6 +114,27 @@ def reject(request):
 
     _stat_request(friend_profile, user_profile, "reject")
     return redirect("show_requests")
+
+
+@api_view(("POST",))
+def delete_friend(request):
+    """deleting friend"""
+    if request.method == "POST":
+        friend = User.objects.get(username=request.POST.get('from_user'))
+        friend_profile = UserProfile.objects.get(user=friend)
+
+        user_profile = UserProfile.objects.get(user=auth.get_user(request))
+
+        friend_profile.friends.remove(user_profile.user)
+        user_profile.friends.remove(friend)
+
+        _stat_request(friend_profile, user_profile, "reject", "accepted")
+
+    return redirect("show_friends")
+
+@api_view(("GET", "POST"))
+def send_message(request):
+    ...
 
 def _get_requests_serialized(user: UserProfile):
     """Internal function to serialize incoming and outcoming requests for user"""
@@ -139,13 +160,13 @@ def _accept_request(from_user: UserProfile, to_user: UserProfile):
 
     _stat_request(from_user, to_user, "accepted")
     
-def _stat_request(from_user: UserProfile, to_user: UserProfile, stat: str):
+def _stat_request(from_user: UserProfile, to_user: UserProfile, new_stat: str, old_stat: str = "pending"):
    """internal function gets user is sending request, user is getting request and status to be set"""
-   from_user_req =  from_user.requests.get(to_user=to_user.user.id, status="pending")
-   to_user_req = to_user.requests.get(from_user=from_user.user.id, status="pending")
+   from_user_req =  from_user.requests.get(to_user=to_user.user.id, status=old_stat)
+   to_user_req = to_user.requests.get(from_user=from_user.user.id, status=old_stat)
 
-   from_user_req.status = stat
-   to_user_req.status = stat
+   from_user_req.status = new_stat
+   to_user_req.status = new_stat
 
    from_user_req.save()
    to_user_req.save()

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Friends{% endblock %}
+{% block content %}
+{% load tz %}
+<h1>Your friends</h1>
+{% for friend in friends %}
+    <ul class="list-group col-5 container">
+        <li class="list-group-item mb-2">
+        <h4>{{ friend.username }}</h4>
+        <div style="display: inline-block;">
+            <form method="POST", action="send_message">
+                {% csrf_token %}
+                <input type="hidden" name="to_user" value="{{ friend.username }}">
+                <button type="submit"  class="btn btn-success">Write</button>
+            </form>
+        </div>
+        <div style="display: inline-block;">
+            <form method="POST", action="delete_friend">
+                {% csrf_token %}
+                <input type="hidden" name="from_user" value="{{ friend.username }}">
+                <button type="submit" class="btn btn-danger">Delete</button> 
+            </form>
+        </div>
+        </li>
+    </ul>
+    {% endfor %}
+
+{% endblock %}

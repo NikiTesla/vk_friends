@@ -43,7 +43,6 @@ def user_signup(request):
         form = SignupForm(request.POST)
 
         if form.is_valid():
-            print("registered")
             user = form.save()
             user_profile = UserProfile.objects.create(user=user)
             user_profile.save()
@@ -63,4 +62,4 @@ def user_signup(request):
 def user_logout(request):
     """User log out function"""
     auth.logout(request)
-    return redirect("/login")
+    return redirect("login/")

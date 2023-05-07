@@ -7,7 +7,7 @@
 
     {% for req in incoming %}
     <ul class="list-group">
-        <li class="list-group-item">
+        <li class="list-group-item mb-2">
         <p>Request from {{ req.from_user }} created at {{ req.created_at }}</p>
         <div style="display: inline-block;">
             <form method="POST", action="accept">
@@ -30,7 +30,7 @@
     <h3>Outcoming:</h3>
     {% for req in outcoming %}
     <ul class="list-group">
-        <li class="list-group-item">
+        <li class="list-group-item mb-2">
         <form method="POST", action="withdraw">
         {% csrf_token %}
             <p>Request from {{ req.to_user }} created at {{ req.created_at }}</p>
