@@ -1,5 +1,6 @@
 from users.models import UserProfile, User
 from .models import FriendshipRequest
+from django.contrib import auth
 
 def accept_request(from_user: UserProfile, to_user: UserProfile):
     """

@@ -4,6 +4,8 @@ import django.contrib.auth as auth
 
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from .models import FriendshipRequest
 from .serializers import UserSerializer, get_requests_serialized
@@ -28,6 +30,15 @@ def show_friends(request):
     # return render(request, "friends.html", {'friends': friends})
     return Response({"friends": friends})
 
+@swagger_auto_schema(
+    method="post",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "username": openapi.Schema(type=openapi.TYPE_STRING, description="username of user to be checked"),
+        }
+    ),
+)
 @login_required
 @api_view(("GET", "POST"))
 def check_status(request):
@@ -51,6 +62,15 @@ def check_status(request):
 
     return Response(status, 200)
 
+@swagger_auto_schema(
+    method="post",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "username": openapi.Schema(type=openapi.TYPE_STRING, description="username of user to be added"),
+        }
+    ),
+)
 @login_required()
 @api_view(("POST", "GET"))
 def add_friend(request):
@@ -95,7 +115,6 @@ def add_friend(request):
         form = FriendshipForm()
     return render(request, 'add_friend.html', {'form': form, 'user':str(user_profile)})
     
-
 @login_required
 @api_view(("GET",))
 def show_requests(request):
@@ -117,7 +136,15 @@ def show_requests(request):
     #     "incoming": incoming
     # })
 
-
+@swagger_auto_schema(
+    method="put",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "to_user": openapi.Schema(type=openapi.TYPE_INTEGER, description="id of user to whom you wanna withdraw request"),
+        }
+    ),
+)
 @login_required
 @api_view(("PUT",))
 def withdraw(request):
@@ -128,9 +155,18 @@ def withdraw(request):
     user_profile, friend_profile = get_user_friend_profiles(request, friend_id)
     change_status_of_request(user_profile, friend_profile, 'withdrawed')
 
-    return Response("added")
+    return Response("request was withdrawed")
     # return redirect("show_requests")
 
+@swagger_auto_schema(
+    method="put",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "to_user": openapi.Schema(type=openapi.TYPE_INTEGER, description="id of user from whom you wanna accept request"),
+        }
+    ),
+)
 @login_required
 @api_view(("PUT",))
 def accept(request):
@@ -144,6 +180,15 @@ def accept(request):
     return Response("now you are friends")
     # return redirect("show_requests")
 
+@swagger_auto_schema(
+    method="put",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "to_user": openapi.Schema(type=openapi.TYPE_INTEGER, description="id of user from whom you wanna reject request"),
+        }
+    ),
+)
 @login_required
 @api_view(("PUT",))
 def reject(request):
@@ -155,8 +200,17 @@ def reject(request):
 
     change_status_of_request(friend_profile, user_profile, "reject")
     # return redirect("show_requests")
-    return Response("rejected")
+    return Response("request was rejected")
 
+@swagger_auto_schema(
+    method="delete",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "from_user": openapi.Schema(type=openapi.TYPE_STRING, description="username of user to be deleted from your friends"),
+        }
+    ),
+)
 @login_required
 @api_view(("DELETE",))
 def delete_friend(request):
@@ -172,12 +226,22 @@ def delete_friend(request):
     change_status_of_request(friend_profile, user_profile, "reject", "accepted")
 
     # return redirect("show_friends")
-    return Response(f"friend {friend.username} deleted")
+    return Response(f"friend {friend.username} was deleted")
 
+@swagger_auto_schema(
+    method="post",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "to_user": openapi.Schema(type=openapi.TYPE_INTEGER, description="id of user to send hello"),
+        }
+    ),
+)
 @login_required
-@api_view(("GET", "POST"))
+@api_view(("POST", ))
 def send_message(request):
-    """Need to be realised. Sending message will be available"""
-    ...
+    """Sends hello to user with id user_id"""
+    user_id = request.data["to_user"]
+    return Response({"message":"Hello!", "to_user":user_id})
 
 

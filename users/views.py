@@ -1,18 +1,29 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 import django.contrib.auth as auth
-from django.contrib.auth.models import User
 
 from rest_framework.response import Response
-
-from .models import UserProfile
-from .forms import LoginForm, SignupForm
 from rest_framework.decorators import api_view
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
+from .models import UserProfile, User
+from .forms import LoginForm, SignupForm
 
 def index(request):
     """index renders main page template"""
     return render(request, "users/index.html")
 
+@swagger_auto_schema(
+    method="post",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "username": openapi.Schema(type=openapi.TYPE_STRING),
+            "password": openapi.Schema(type=openapi.TYPE_STRING),
+        }
+    ),
+)
 @api_view(("GET", "POST"))
 def user_login(request):
     """User login function. In case of GET write form, in case of POST authenticate user"""
@@ -43,7 +54,19 @@ def user_login(request):
     else:
         form = LoginForm()
         return render(request, 'users/login.html', {'form': form})
-    
+
+@swagger_auto_schema(
+    method="post",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "username": openapi.Schema(type=openapi.TYPE_STRING),
+            "password1": openapi.Schema(type=openapi.TYPE_STRING),
+            "password2": openapi.Schema(type=openapi.TYPE_STRING, description="password confirmation"),
+            "email": openapi.Schema(type=openapi.TYPE_STRING, description="in format of email *@*.*")
+        }
+    ),
+)
 @api_view(("GET", "POST"))
 def user_signup(request):
     """
