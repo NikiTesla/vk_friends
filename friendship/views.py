@@ -1,4 +1,3 @@
-from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 import django.contrib.auth as auth
@@ -10,13 +9,19 @@ from rest_framework.decorators import api_view
 from .models import FriendshipRequest
 from.forms import FriendshipForm
 from users.models import UserProfile
-from .serializers import UserSerializer, IncomeFriendshipRequestsSerializer, OutcomeFriendshipRequestsSerializer
+from .serializers import UserSerializer, get_requests_serialized
+
+class SkipException(Exception):
+    """Exception for skip blocks of code with status message"""
+    def __init__(self, status: str=""):
+        self.status = status
 
 @login_required
 def index(request):
+    """main page with list of available actions with friendship"""
     return render(request, "index.html")
 
-@login_required()
+@login_required
 @api_view(('GET',))
 def show_friends(request):
     """show_friends returns drf response with current username and its friends"""
@@ -24,6 +29,57 @@ def show_friends(request):
     friends = UserSerializer(user.friends.all(), many=True).data
 
     return render(request, "friends.html", {'friends': friends})
+
+@login_required
+@api_view(("GET", "POST"))
+def check_status(request):
+    """check_status is provided for user to get information about connection with other user"""
+    try:
+        assert request.method == "POST"
+        form = FriendshipForm(request.POST)
+        user_profile = UserProfile.objects.get(user=auth.get_user(request))
+
+        if form.is_valid():
+            cd = form.cleaned_data
+            try:
+                friend = User.objects.get(username=cd['username'])
+            except User.DoesNotExist:
+                return Response("User doesn't exist")
+        
+        status = "Nothing"
+        try:
+            if user_profile.user.username == friend.username:
+                status = "We recognized you! It is your username"
+                raise SkipException(status)
+            
+            user_profile.friends.get(username=friend.username)
+            status = "Friends"
+            raise SkipException(status)
+        except User.DoesNotExist:
+            pass
+
+        try:
+            user_profile.requests.get(to_user=friend, status="pending")
+            status = "Request was sent"
+            raise SkipException(status)
+        except FriendshipRequest.DoesNotExist:
+            pass
+
+        try:
+            user_profile.requests.get(from_user=friend, status="pending")
+            status = "User is waiting you to answer on the friendship request"
+            raise SkipException(status)
+        except FriendshipRequest.DoesNotExist:
+            pass
+
+    except AssertionError:
+        status = ""
+        form = FriendshipForm()
+    except SkipException as e:
+        form = ""
+        status = e.status
+
+    return render(request, 'check_status.html', {'form': form, 'status': status})
 
 @login_required()
 @api_view(("POST","GET"))
@@ -47,7 +103,7 @@ def add_friend(request):
                 return Response("User doesn't exist", status=400)
             
             if friend not in user_profile.friends.all() and user_profile.user.id != friend.id:
-                incoming, outcoming = _get_requests_serialized(user_profile)
+                incoming, outcoming = get_requests_serialized(user_profile)
                 for freq in outcoming:
                     if freq["to_user"] == friend.id:
                         return Response("Already sent", status=400)          
@@ -73,8 +129,9 @@ def add_friend(request):
 @login_required
 @api_view(("GET",))
 def show_requests(request):
+    """list all incoming and outcoming requests with status pending for current user"""
     user = UserProfile.objects.get(user=auth.get_user(request))
-    incoming, outcoming = _get_requests_serialized(user)
+    incoming, outcoming = get_requests_serialized(user)
 
     return render(request, "requests.html", {
         "user": str(user),
@@ -82,6 +139,7 @@ def show_requests(request):
         "incoming": incoming
     })
 
+@login_required
 @api_view(("POST",))
 def withdraw(request):
     """withdraw of friendship request"""
@@ -93,6 +151,7 @@ def withdraw(request):
 
     return redirect("show_requests")
 
+@login_required
 @api_view(("POST",))
 def accept(request):
     """acceptance of friendship request"""
@@ -104,6 +163,7 @@ def accept(request):
 
     return redirect("show_requests")
 
+@login_required
 @api_view(("POST",))
 def reject(request):
     """rejection of friendship request"""
@@ -115,7 +175,7 @@ def reject(request):
     _stat_request(friend_profile, user_profile, "reject")
     return redirect("show_requests")
 
-
+@login_required
 @api_view(("POST",))
 def delete_friend(request):
     """deleting friend"""
@@ -132,26 +192,10 @@ def delete_friend(request):
 
     return redirect("show_friends")
 
+@login_required
 @api_view(("GET", "POST"))
 def send_message(request):
     ...
-
-def _get_requests_serialized(user: UserProfile):
-    """Internal function to serialize incoming and outcoming requests for user"""
-    try:
-        incoming = user.requests.filter(to_user=user.user, status="pending")
-        ser_incoming = IncomeFriendshipRequestsSerializer(incoming, many=True).data
-    except FriendshipRequest.DoesNotExist:
-        ser_incoming = []
-
-    try:
-        outcoming = user.requests.filter(from_user=user.user, status="pending")
-        ser_outcoming = OutcomeFriendshipRequestsSerializer(outcoming, many=True).data
-    except FriendshipRequest.DoesNotExist:
-        ser_outcoming = []
-
-    return (ser_incoming, ser_outcoming)
-
 
 def _accept_request(from_user: UserProfile, to_user: UserProfile):
     """internal function gets user is sending request, user is accepting request, makes them friends"""

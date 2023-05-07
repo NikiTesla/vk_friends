@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Check status{% endblock %}
+{% block content %}
+    <h1>Check status of friendship</h1>
+    <p>Please, enter user's name:</p>
+    <div class="container col-6 pb-3"> 
+    {% if status %}
+        <h4>{{ status }}</h4>
+    {% else %}
+    <form action="check_status" method="post">
+        {{ form|crispy }}
+        {% csrf_token %}
+        <p><input type="submit" value="check_status" class="btn btn-success mt-3"></p>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}
