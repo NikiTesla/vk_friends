@@ -1,25 +1,22 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 import django.contrib.auth as auth
-from django.contrib.auth.models import User
 
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 
 from .models import FriendshipRequest
-from.forms import FriendshipForm
-from users.models import UserProfile
 from .serializers import UserSerializer, get_requests_serialized
+from.forms import FriendshipForm
+from users.models import UserProfile, User
+from .tools import get_status, get_user_friend_profiles, accept_request, change_status_of_request
 
-class SkipException(Exception):
-    """Exception for skip blocks of code with status message"""
-    def __init__(self, status: str=""):
-        self.status = status
 
 @login_required
 def index(request):
     """main page with list of available actions with friendship"""
     return render(request, "index.html")
+
 
 @login_required
 @api_view(('GET',))
@@ -28,206 +25,159 @@ def show_friends(request):
     user = UserProfile.objects.get(user=auth.get_user(request))
     friends = UserSerializer(user.friends.all(), many=True).data
 
-    return render(request, "friends.html", {'friends': friends})
+    # return render(request, "friends.html", {'friends': friends})
+    return Response({"friends": friends})
 
 @login_required
 @api_view(("GET", "POST"))
 def check_status(request):
     """check_status is provided for user to get information about connection with other user"""
-    try:
-        assert request.method == "POST"
-        form = FriendshipForm(request.POST)
+    if request.method == "POST":
+        # form = FriendshipForm(request.POST)
         user_profile = UserProfile.objects.get(user=auth.get_user(request))
 
-        if form.is_valid():
-            cd = form.cleaned_data
-            try:
-                friend = User.objects.get(username=cd['username'])
-            except User.DoesNotExist:
-                return Response("User doesn't exist")
-        
-        status = "Nothing"
         try:
-            if user_profile.user.username == friend.username:
-                status = "We recognized you! It is your username"
-                raise SkipException(status)
-            
-            user_profile.friends.get(username=friend.username)
-            status = "Friends"
-            raise SkipException(status)
+            friend = User.objects.get(username=request.data["username"])
         except User.DoesNotExist:
-            pass
+            return Response("User doesn't exist", 400)
+        
+        status = get_status(user_profile, friend)
 
-        try:
-            user_profile.requests.get(to_user=friend, status="pending")
-            status = "Request was sent"
-            raise SkipException(status)
-        except FriendshipRequest.DoesNotExist:
-            pass
-
-        try:
-            user_profile.requests.get(from_user=friend, status="pending")
-            status = "User is waiting you to answer on the friendship request"
-            raise SkipException(status)
-        except FriendshipRequest.DoesNotExist:
-            pass
-
-    except AssertionError:
+    else:
         status = ""
         form = FriendshipForm()
-    except SkipException as e:
-        form = ""
-        status = e.status
+        # wanna return to website? place this return except lower one
+        return render(request, 'check_status.html', {'form': form, 'status': status})
 
-    return render(request, 'check_status.html', {'form': form, 'status': status})
+    return Response(status, 200)
 
 @login_required()
-@api_view(("POST","GET"))
+@api_view(("POST", "GET"))
 def add_friend(request):
     """
     add_friend in case of GET write form of friend search,
-    in case of POST, check if form is matchhed and if user exists.
+    in case of POST, gets username from request body check if user exists.
     Then it sends request of friendship
     """
     user_profile = UserProfile.objects.get(user=auth.get_user(request))
 
     if request.method == 'POST':
-        form = FriendshipForm(request.POST)
+        try:
+            friend = User.objects.get(username=request.data["username"])
+            friend_profile = UserProfile.objects.get(user=friend)
+        except User.DoesNotExist:
+            return Response("User doesn't exist", status=400)
+        
+        # checking if users are already friends or request of friendship was already sent
+        if friend not in user_profile.friends.all() and user_profile.user.id != friend.id:
+            incoming, outcoming = get_requests_serialized(user_profile)
 
-        if form.is_valid():
-            cd = form.cleaned_data
-            try:
-                friend = User.objects.get(username=cd['username'])
-                friend_profile = UserProfile.objects.get(user=friend)
-            except User.DoesNotExist:
-                return Response("User doesn't exist", status=400)
-            
-            if friend not in user_profile.friends.all() and user_profile.user.id != friend.id:
-                incoming, outcoming = get_requests_serialized(user_profile)
-                for freq in outcoming:
-                    if freq["to_user"] == friend.id:
-                        return Response("Already sent", status=400)          
-                for freq in incoming:          
-                    if freq["from_user"] == friend.id:
-                        _accept_request(friend_profile, user_profile)
-                        return Response("Now you are friends!")
+            for freq in outcoming:
+                if freq["to_user"] == friend.id:
+                    return Response("Already sent", status=400)
                     
-                fs_request = FriendshipRequest(from_user=user_profile.user, to_user=friend)
-                fs_request.save()
-                user_profile.requests.add(fs_request)
-                friend_profile.requests.add(fs_request)
-
-                return redirect("show_requests")
+            for freq in incoming:          
+                if freq["from_user"] == friend.id:
+                    accept_request(friend_profile, user_profile)
+                    return Response("Now you are friends!")
                 
-            else:
-                return Response("Already freinds", status=400)
+            fs_request = FriendshipRequest(from_user=user_profile.user, to_user=friend)
+            fs_request.save()
+            user_profile.requests.add(fs_request)
+            friend_profile.requests.add(fs_request)
+
+            # return redirect("show_requests")
+            return Response("Request was sent", 200)
+            
+        else:
+            return Response("Already freinds", status=400)
     else:
         form = FriendshipForm()
-    
     return render(request, 'add_friend.html', {'form': form, 'user':str(user_profile)})
+    
 
 @login_required
 @api_view(("GET",))
 def show_requests(request):
-    """list all incoming and outcoming requests with status pending for current user"""
+    """
+    List all incoming and outcoming requests with status pending for current user
+    """
     user = UserProfile.objects.get(user=auth.get_user(request))
     incoming, outcoming = get_requests_serialized(user)
 
-    return render(request, "requests.html", {
+    return Response({
         "user": str(user),
         "outcoming": outcoming,
         "incoming": incoming
     })
 
+    # return render(request, "requests.html", {
+    #     "user": str(user),
+    #     "outcoming": outcoming,
+    #     "incoming": incoming
+    # })
+
+
 @login_required
-@api_view(("POST",))
+@api_view(("PUT",))
 def withdraw(request):
-    """withdraw of friendship request"""
-    if request.method == "POST":
-        friend_id = request.POST.get('to_user')
+    """
+    Withdraw of friendship request. Gets user id to whom request was sent to be withdrawed."""
+    friend_id = request.data["to_user"]
 
-    user_profile, friend_profile = _get_user_friend_profiles(request, friend_id)
-    _stat_request(user_profile, friend_profile, 'withdrawed')
+    user_profile, friend_profile = get_user_friend_profiles(request, friend_id)
+    change_status_of_request(user_profile, friend_profile, 'withdrawed')
 
-    return redirect("show_requests")
+    return Response("added")
+    # return redirect("show_requests")
 
 @login_required
-@api_view(("POST",))
+@api_view(("PUT",))
 def accept(request):
-    """acceptance of friendship request"""
-    if request.method == "POST":
-        friend_id = request.POST.get('from_user')
+    """
+    Acceptance of friendship request. Gets id of user to be accepted as friend"""
+    friend_id = request.data["from_user"]
 
-    user_profile, friend_profile = _get_user_friend_profiles(request, friend_id)
-    _accept_request(friend_profile, user_profile)
+    user_profile, friend_profile = get_user_friend_profiles(request, friend_id)
+    accept_request(friend_profile, user_profile)
 
-    return redirect("show_requests")
+    return Response("now you are friends")
+    # return redirect("show_requests")
 
 @login_required
-@api_view(("POST",))
+@api_view(("PUT",))
 def reject(request):
-    """rejection of friendship request"""
-    if request.method == "POST":
-        friend_id = request.POST.get('from_user')
+    """
+    Rejection of friendship request. Get user id of sender of the request to be rejected."""
+    friend_id = request.data["from_user"]
 
-    user_profile, friend_profile = _get_user_friend_profiles(request, friend_id)
+    user_profile, friend_profile = get_user_friend_profiles(request, friend_id)
 
-    _stat_request(friend_profile, user_profile, "reject")
-    return redirect("show_requests")
+    change_status_of_request(friend_profile, user_profile, "reject")
+    # return redirect("show_requests")
+    return Response("rejected")
 
 @login_required
-@api_view(("POST",))
+@api_view(("DELETE",))
 def delete_friend(request):
-    """deleting friend"""
-    if request.method == "POST":
-        friend = User.objects.get(username=request.POST.get('from_user'))
-        friend_profile = UserProfile.objects.get(user=friend)
+    """
+    Deleting friend. Get username of user to be deleted from friends"""
+    friend = User.objects.get(username=request.data["from_user"])
+    friend_profile = UserProfile.objects.get(user=friend)
 
-        user_profile = UserProfile.objects.get(user=auth.get_user(request))
+    user_profile = UserProfile.objects.get(user=auth.get_user(request))
+    friend_profile.friends.remove(user_profile.user)
+    user_profile.friends.remove(friend)
 
-        friend_profile.friends.remove(user_profile.user)
-        user_profile.friends.remove(friend)
+    change_status_of_request(friend_profile, user_profile, "reject", "accepted")
 
-        _stat_request(friend_profile, user_profile, "reject", "accepted")
-
-    return redirect("show_friends")
+    # return redirect("show_friends")
+    return Response(f"friend {friend.username} deleted")
 
 @login_required
 @api_view(("GET", "POST"))
 def send_message(request):
+    """Need to be realised. Sending message will be available"""
     ...
 
-def _accept_request(from_user: UserProfile, to_user: UserProfile):
-    """internal function gets user is sending request, user is accepting request, makes them friends"""
-    from_user.friends.add(to_user.user)
-    to_user.friends.add(from_user.user)
 
-    _stat_request(from_user, to_user, "accepted")
-    
-def _stat_request(from_user: UserProfile, to_user: UserProfile, new_stat: str, old_stat: str = "pending"):
-   """internal function gets user is sending request, user is getting request and status to be set"""
-   try:
-        from_user_req =  from_user.requests.get(to_user=to_user.user.id, status=old_stat)
-   except FriendshipRequest.DoesNotExist:
-        from_user_req =  from_user.requests.get(from_user=to_user.user.id, status=old_stat)
-
-   try:
-        to_user_req = to_user.requests.get(from_user=from_user.user.id, status=old_stat)
-   except FriendshipRequest.DoesNotExist:
-        to_user_req = to_user.requests.get(to_user=from_user.user.id, status=old_stat)
-
-   from_user_req.status = new_stat
-   to_user_req.status = new_stat
-
-   from_user_req.save()
-   to_user_req.save()
-
-
-def _get_user_friend_profiles(request, friend_id):
-    """internal function that returns user_profile and friend_profile with id friend_id"""
-    user_profile = UserProfile.objects.get(user=auth.get_user(request))
-
-    friend = User.objects.get(id=friend_id)
-    friend_profile = UserProfile.objects.get(user=friend)
-
-    return user_profile, friend_profile

@@ -17,3 +17,5 @@ class FriendshipRequest(models.Model):
     def __str__(self) -> str:
         return f"Friendship request from {self.from_user} to {self.to_user} created at {self.created_at} has status {self.status}"
     
+
+

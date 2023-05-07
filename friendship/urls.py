@@ -14,5 +14,5 @@ urlpatterns = [
     path("withdraw", views.withdraw, name="withdraw"),
 
     path("delete_friend", views.delete_friend, name="delete_friend"),
-    path("send_message", views.send_message, name="send_message"),
+    path("send_message", views.send_message, name="send_message")
 ]
