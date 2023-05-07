@@ -22,10 +22,15 @@ def user_login(request):
         # if form.is_valid():
         #     cd = form.cleaned_data
         #     user = auth.authenticate(username=cd['username'], password=cd['password'])
-        user = auth.authenticate(username=request.data['username'], password=request.data["password"])
+        try:
+            username = request.data["username"]
+            password = request.data["password"]
+        except KeyError:
+            return Response("You should propose both username and password fields")
+        
+        user = auth.authenticate(username=username, password=password)
 
         if user is not None:
-            print(user.id)
             if user.is_active:
                 auth.login(request, user)
 
@@ -55,6 +60,9 @@ def user_signup(request):
         #     return Response(form.error_messages)
 
         user = parse_signup(request)
+        if type(user) is Response:
+            return user
+        
         user.save()
         user_profile = UserProfile.objects.create(user=user)
         user_profile.save()
@@ -73,10 +81,10 @@ def user_logout(request):
     """User log out function"""
     auth.logout(request)
     # return redirect("login/")
-    return Response("You were logged out")
+    return Response("You were logged out", 200)
 
 
-def parse_signup(request) -> User:
+def parse_signup(request) -> User | Response:
     """
     Function that parses request body with username, email, password1 and confirmation password2.
     Create and return django.contrib.auth.models.User and returns it. 
@@ -92,6 +100,11 @@ def parse_signup(request) -> User:
         return Response("Username should contain 6 or more symbols. Password should contain 8 or more symbols", 400)
     if "@" not in email or len(email) < 6:
         return Response("Email is incorrect", 400)
+    try:
+        User.objects.get(username=username)
+        return Response("Username already exists", 400)
+    except User.DoesNotExist:
+        user = User.objects.create_user(username=username, email=email, password=password1)
+
     
-    user = User.objects.create_user(username=username, email=email, password=password1)
     return user

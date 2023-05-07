@@ -1,0 +1,291 @@
+openapi: 3.0.2
+info:
+  title: ''
+  version: ''
+paths:
+  /signup:
+    get:
+      operationId: listuser_signups
+      description: 'User signup function. In case of GET renders html template with
+        signup form.
+
+        In case of POST call request body parse function, create user with parameters
+        and log in'
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - signup
+    post:
+      operationId: createuser_signup
+      description: 'User signup function. In case of GET renders html template with
+        signup form.
+
+        In case of POST call request body parse function, create user with parameters
+        and log in'
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema: {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+      tags:
+      - signup
+  /login:
+    get:
+      operationId: listuser_logins
+      description: User login function. In case of GET write form, in case of POST
+        authenticate user
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - login
+    post:
+      operationId: createuser_login
+      description: User login function. In case of GET write form, in case of POST
+        authenticate user
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema: {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+      tags:
+      - login
+  /logout:
+    get:
+      operationId: listuser_logouts
+      description: User log out function
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - logout
+  /friendship/show_friends:
+    get:
+      operationId: listshow_friends
+      description: show_friends returns drf response with current username and its
+        friends
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - friendship
+  /friendship/add_friend:
+    get:
+      operationId: listadd_friends
+      description: 'add_friend in case of GET write form of friend search,
+
+        in case of POST, gets username from request body check if user exists.
+
+        Then it sends request of friendship'
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - friendship
+    post:
+      operationId: createadd_friend
+      description: 'add_friend in case of GET write form of friend search,
+
+        in case of POST, gets username from request body check if user exists.
+
+        Then it sends request of friendship'
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema: {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+      tags:
+      - friendship
+  /friendship/show_requests:
+    get:
+      operationId: listshow_requests
+      description: List all incoming and outcoming requests with status pending for
+        current user
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - friendship
+  /friendship/check_status:
+    get:
+      operationId: listcheck_status
+      description: check_status is provided for user to get information about connection
+        with other user
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - friendship
+    post:
+      operationId: createcheck_status
+      description: check_status is provided for user to get information about connection
+        with other user
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema: {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+      tags:
+      - friendship
+  /friendship/send_message:
+    get:
+      operationId: listsend_messages
+      description: Need to be realised. Sending message will be available
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+          description: ''
+      tags:
+      - friendship
+    post:
+      operationId: createsend_message
+      description: Need to be realised. Sending message will be available
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema: {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+      tags:
+      - friendship
+  /friendship/accept:
+    put:
+      operationId: updateaccept
+      description: Acceptance of friendship request. Gets id of user to be accepted
+        as friend
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema: {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+      tags:
+      - friendship
+  /friendship/reject:
+    put:
+      operationId: updatereject
+      description: Rejection of friendship request. Get user id of sender of the request
+        to be rejected.
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema: {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+      tags:
+      - friendship
+  /friendship/withdraw:
+    put:
+      operationId: updatewithdraw
+      description: Withdraw of friendship request. Gets user id to whom request was
+        sent to be withdrawed.
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema: {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: ''
+      tags:
+      - friendship
+  /friendship/delete_friend:
+    delete:
+      operationId: destroydelete_friend
+      description: Deleting friend. Get username of user to be deleted from friends
+      parameters: []
+      responses:
+        '204':
+          description: ''
+      tags:
+      - friendship
