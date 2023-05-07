@@ -195,23 +195,9 @@ paths:
       tags:
       - friendship
   /friendship/send_message:
-    get:
-      operationId: listsend_messages
-      description: Need to be realised. Sending message will be available
-      parameters: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items: {}
-          description: ''
-      tags:
-      - friendship
     post:
       operationId: createsend_message
-      description: Need to be realised. Sending message will be available
+      description: Sends hello to user with id user_id
       parameters: []
       requestBody:
         content:
