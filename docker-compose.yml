@@ -24,6 +24,7 @@ services:
     links:
       - db:db
     environment:
+      DEBUG: false
       DB_NAME: friends
       DB_USER: postgres
       DB_PASSWORD: pass
