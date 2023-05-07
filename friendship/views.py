@@ -206,8 +206,15 @@ def _accept_request(from_user: UserProfile, to_user: UserProfile):
     
 def _stat_request(from_user: UserProfile, to_user: UserProfile, new_stat: str, old_stat: str = "pending"):
    """internal function gets user is sending request, user is getting request and status to be set"""
-   from_user_req =  from_user.requests.get(to_user=to_user.user.id, status=old_stat)
-   to_user_req = to_user.requests.get(from_user=from_user.user.id, status=old_stat)
+   try:
+        from_user_req =  from_user.requests.get(to_user=to_user.user.id, status=old_stat)
+   except FriendshipRequest.DoesNotExist:
+        from_user_req =  from_user.requests.get(from_user=to_user.user.id, status=old_stat)
+
+   try:
+        to_user_req = to_user.requests.get(from_user=from_user.user.id, status=old_stat)
+   except FriendshipRequest.DoesNotExist:
+        to_user_req = to_user.requests.get(to_user=from_user.user.id, status=old_stat)
 
    from_user_req.status = new_stat
    to_user_req.status = new_stat
